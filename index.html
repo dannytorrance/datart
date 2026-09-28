@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Datart – AI Porovnání produktů</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --datart-navy: #001744;
+    --datart-green: #68a132;
+    --datart-red: #e30613;
+    --datart-gray-light: #f5f5f5;
+    --datart-gray-border: #d7d7d7;
+    --datart-text-muted: #99a1af;
+    --datart-text-body: #364153;
+    --datart-text-secondary: #4a5565;
+    --card-width: 258px; /* overridden dynamically by JS to fit modal width */
+    --card-gap: 16px;
+  }
+
+  body {
+    font-family: 'Open Sans', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    color: var(--datart-navy);
+  }
+
+  /* ===== FAKE PRODUCT PAGE ===== */
+  .page-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px;
+  }
+
+  .fake-header {
+    background: var(--datart-navy);
+    color: white;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    border-radius: 8px;
+  }
+  .fake-header .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .fake-header .logo span { color: var(--datart-red); }
+  .fake-breadcrumb { font-size: 12px; opacity: 0.6; }
+
+  .product-detail-mock {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--datart-gray-border);
+    padding: 24px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+  }
+  .product-img-mock {
+    width: 200px; height: 200px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px;
+    flex-shrink: 0;
+  }
+  .product-info { flex: 1; }
+  .product-info h1 { font-size: 20px; font-weight: 700; color: var(--datart-navy); margin-bottom: 8px; }
+  .stars { color: #f59e0b; font-size: 14px; margin-bottom: 8px; }
+  .stars span { color: var(--datart-text-secondary); font-size: 13px; margin-left: 4px; }
+  .price-big { font-size: 28px; font-weight: 700; color: var(--datart-red); margin-bottom: 16px; }
+  .product-specs { list-style: none; }
+  .product-specs li { font-size: 13px; color: var(--datart-text-body); padding: 4px 0; display: flex; gap: 8px; }
+  .product-specs li::before { content: "•"; color: var(--datart-navy); font-weight: 700; }
+  .btn-cart {
+    background: var(--datart-red); color: white; border: none;
+    padding: 12px 24px; border-radius: 4px;
+    font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 16px; font-family: inherit;
+  }
+
+  /* ===== AI BANNER ===== */
+  .ai-banner {
+    background: var(--datart-gray-light);
+    border: 1px solid var(--datart-gray-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .ai-banner-left { display: flex; align-items: center; gap: 16px; flex: 1; }
+  .ai-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: white; border: 1px solid #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .ai-banner-text h3 { font-size: 15px; font-weight: 700; color: var(--datart-navy); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .badge-beta {
+    background: var(--datart-green); color: white;
+    font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 999px;
+    letter-spacing: 0.25px; text-transform: uppercase;
+  }
+  .ai-banner-text p { font-size: 13px; color: var(--datart-text-secondary); margin-top: 2px; }
+
+  .btn-compare {
+    background: var(--datart-navy); color: white; border: none;
+    padding: 12px 24px; border-radius: 4px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    white-space: nowrap; font-family: inherit; flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .btn-compare:hover { background: #002a6e; }
+
+  /* ===== MODAL OVERLAY ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,23,68,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 60px; /* room for 68px nav arrows half-outside modal (34px + 26px buffer) */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ===== MODAL ===== */
+  .modal {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
+    width: 100%;
+    max-width: 1000px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transform: translateY(16px);
+    transition: transform 0.25s;
+    /* allow nav arrows to overflow outside */
+    overflow: visible;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-header {
+    background: var(--datart-gray-light);
+    padding: 10px 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 12px 12px 0 0;
+    flex-shrink: 0;
+  }
+  .modal-header .ai-icon { font-size: 18px; }
+  .modal-header h2 { font-size: 16px; font-weight: 700; color: var(--datart-navy); }
+  .info-icon { font-size: 14px; color: var(--datart-text-muted); cursor: help; margin-left: 2px; position: relative; }
+  .info-icon:hover::after {
+    content: attr(data-tip);
+    position: absolute; left: 24px; top: -4px;
+    background: var(--datart-navy); color: white;
+    font-size: 12px; padding: 6px 10px; border-radius: 6px;
+    white-space: nowrap; z-index: 10;
+    font-family: 'Open Sans', sans-serif; font-weight: 400;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: -20px; right: -20px;
+    width: 48px; height: 48px;
+    background: white;
+    border: 1px solid var(--datart-gray-border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 20px; color: var(--datart-navy);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: background 0.15s;
+    z-index: 10;
+  }
+  .modal-close:hover { background: #f5f5f5; }
+
+  /* ===== CAROUSEL AREA ===== */
+  /* carousel-area is now a flex COLUMN: modal-body (scrollable cards) on top,
+     dots directly beneath it — so dots always hug the card row instead of
+     being pinned to the bottom of the whole remaining modal space. */
+  .carousel-area {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: auto; /* see note on .modal-body below re: flex-basis:0 trap */
+    position: relative;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  /* flex-basis:auto (not the flex:1 shorthand, which sets flex-basis:0) —
+     combined with flex-shrink:0 siblings (dots, footer, etc.) a flex-basis:0
+     item gets a scaled shrink factor of 0 and can never shrink, so overflowing
+     content would push the modal open instead of scrolling inside it. */
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: auto;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    background: var(--datart-gray-light);
+  }
+
+  /* Nav arrows: positioned relative to .carousel-area */
+  .carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    width: 68px; height: 68px;
+    background: var(--datart-navy);
+    border: none;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: white;
+    box-shadow: 0 4px 20px rgba(0,23,68,0.35);
+    transition: background 0.15s, transform 0.15s, box-shadow 0.15s;
+    padding: 0;
+  }
+  .carousel-nav svg {
+    width: 32px; height: 32px;
+    display: block;
+    flex-shrink: 0;
+  }
+  .carousel-nav:hover {
+    background: #002a6e;
+    box-shadow: 0 6px 24px rgba(0,23,68,0.45);
+    transform: translateY(-50%) scale(1.08);
+  }
+  .carousel-nav:active { transform: translateY(-50%) scale(0.96); }
+  .carousel-nav.disabled { display: none; }
+  /* Desktop: half outside modal edge */
+  .carousel-nav.left  { left: -34px; }
+  .carousel-nav.right { right: -34px; }
+
+  .cards-viewport {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 16px 0; /* no bottom padding: sticky footer must sit flush with the bottom edge */
+  }
+
+  /* ===== COMPARE ROW =====
+     Current product is pinned on the left and never moves. The alternatives
+     live in a small sliding "alt-track" to its right — arrows/swipe/dots
+     only ever move through the alternatives; identical behaviour on both
+     desktop and mobile, just showing more alt cards at once on desktop
+     (sized dynamically by layoutCompareRow() in JS). */
+  .compare-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch; /* current + visible alt(s) share the tallest height */
+    gap: var(--card-gap);
+    padding-bottom: 10px; /* bottom spacing lives here so it scrolls with content */
+  }
+  .alt-viewport {
+    flex-shrink: 0;
+    overflow-x: hidden; /* fallback for browsers without overflow: clip */
+    overflow-x: clip;   /* clips sideways WITHOUT becoming a scroll container, so
+                           .card-footer's sticky still reaches .cards-viewport */
+    overflow-y: visible;
+    position: relative;
+    /* width set dynamically by JS to fit however many alt cards are
+       visible at the current breakpoint */
+  }
+  .alt-track {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch; /* all alt cards share the tallest one's height */
+    gap: var(--card-gap);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ===== PRODUCT CARD ===== */
+  .product-card {
+    background: white;
+    border: 1px solid var(--datart-gray-border);
+    border-radius: 8px;
+    padding: 20px;
+    min-width: var(--card-width);
+    max-width: var(--card-width);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .product-card.current {
+    border-color: var(--datart-navy);
+    box-shadow: 0 0 0 1px rgba(0,23,68,0.15);
+    background: #e8eef8;
+  }
+
+  .card-badge {
+    background: var(--datart-gray-light);
+    color: var(--datart-navy);
+    font-size: 11px; font-weight: 700;
+    text-align: center;
+    padding: 6px 12px; border-radius: 4px;
+    margin-bottom: 16px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .product-card.current .card-badge { background: var(--datart-navy); color: white; }
+
+  .card-name {
+    font-size: 14px; font-weight: 700; color: var(--datart-navy);
+    line-height: 1.4; margin-bottom: 8px; min-height: 42px;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .card-price { font-size: 16px; font-weight: 700; color: var(--datart-red); margin-bottom: 4px; }
+
+  .card-rating {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 16px; font-size: 13px;
+    padding-bottom: 16px; border-bottom: 1px solid #f3f4f6;
+  }
+  .stars-row { color: #f59e0b; letter-spacing: -1px; font-size: 13px; }
+  .rating-val { font-weight: 700; color: var(--datart-navy); }
+  .rating-count { color: #6a7282; }
+
+  .card-ai-section { flex: 1; display: flex; flex-direction: column; }
+
+  .ai-section-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; color: var(--datart-text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+  }
+  .ai-section-label .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--datart-text-muted); flex-shrink: 0; }
+
+  .ai-loading { flex: 1; display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  .ai-list { flex: 1; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .ai-list li {
+    display: flex; gap: 10px; font-size: 13px; line-height: 1.55;
+    color: var(--datart-text-body); animation: fadeSlideIn 0.4s ease both;
+  }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .ai-list li .bullet { width: 6px; height: 6px; border-radius: 50%; background: rgba(0,23,68,0.5); margin-top: 6px; flex-shrink: 0; }
+  .ai-list.advantage li .bullet { background: var(--datart-green); }
+  .ai-list li strong { color: var(--datart-text-body); }
+  .ai-list.advantage li strong { color: var(--datart-green); }
+
+  .ai-placeholder {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; text-align: center; color: var(--datart-text-muted); font-size: 13px;
+    padding: 16px; border-radius: 6px; background: #fafafa;
+  }
+  .ai-placeholder .icon { font-size: 28px; opacity: 0.5; }
+
+  .card-footer {
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid #f3f4f6;
+    position: sticky; bottom: 0; z-index: 2;
+    background: white; /* opaque so scrolled content doesn't show through while stuck */
+  }
+  .product-card.current .card-footer { background: #e8eef8; } /* match current card's tint */
+  .btn-detail {
+    width: 100%; padding: 10px; border-radius: 4px;
+    font-size: 13px; font-weight: 700; font-family: inherit;
+    cursor: pointer; border: none; transition: background 0.15s;
+  }
+  .btn-detail.current-btn { background: #f3f4f6; color: var(--datart-text-muted); cursor: default; }
+  .btn-detail.go-btn { background: var(--datart-navy); color: white; }
+  .btn-detail.go-btn:hover { background: #002a6e; }
+
+  /* ===== MODAL FOOTER ===== */
+  .modal-footer {
+    background: var(--datart-gray-light);
+    padding: 0 24px 14px;
+    display: flex; align-items: center; gap: 16px;
+    border-radius: 0 0 12px 12px;
+    flex-shrink: 0;
+  }
+  .modal-footer-text { font-size: 13px; font-weight: 600; color: var(--datart-navy); }
+  .vote-btn {
+    background: none; border: 1px solid transparent;
+    border-radius: 4px; padding: 4px 8px; font-size: 16px;
+    cursor: pointer; transition: background 0.15s, border-color 0.15s;
+  }
+  .vote-btn:hover { background: #e5e7eb; }
+  .vote-btn.voted { background: #dbeafe; border-color: #93c5fd; }
+  .modal-footer-note { margin-left: auto; font-size: 11px; color: var(--datart-text-muted); }
+
+  /* ===== AI STATUS BAR — hidden, logic kept for completeness ===== */
+  .ai-status-bar { display: none; }
+  .ai-status-bar.visible { display: none; }
+
+  /* ===== DOTS ===== */
+  /* Lives inside .carousel-area now, directly under modal-body, so it hugs
+     the card row instead of sitting at the bottom of the flexible area. */
+  .carousel-dots {
+    display: flex; justify-content: center; gap: 6px;
+    padding: 10px 0 0; flex-shrink: 0;
+    background: var(--datart-gray-light);
+  }
+  .carousel-dots .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--datart-gray-border); cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .carousel-dots .dot.active { background: var(--datart-navy); transform: scale(1.3); }
+
+  /* Extra static spec lines shown on some cards (before/independent of AI
+     content) — demonstrates that cards stretch to a shared, uniform height. */
+  .card-extra-specs { list-style: none; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6; }
+  .card-extra-specs li {
+    font-size: 12px; color: var(--datart-text-body);
+    padding: 2px 0; display: flex; gap: 6px;
+  }
+  .card-extra-specs li::before { content: "•"; color: var(--datart-navy); font-weight: 700; flex-shrink: 0; }
+
+
+  /* ============================================================
+     MOBILE STYLES  (<= 640px)
+     - Banner stacks vertically
+     - Modal becomes bottom sheet (90vh, slides up)
+     - 1 card visible, touch swipe
+     - Nav arrows hidden (swipe instead)
+  ============================================================ */
+  @media (max-width: 640px) {
+    .fake-header { border-radius: 0; margin-bottom: 0; }
+    .page-shell { padding: 16px 12px; }
+
+    .product-detail-mock {
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+    }
+    .product-img-mock { width: 100%; height: 160px; }
+    .product-info h1 { font-size: 16px; }
+    .price-big { font-size: 22px; }
+    .btn-cart { width: 100%; text-align: center; }
+
+    .ai-banner {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .btn-compare { width: 100%; text-align: center; }
+
+    /* Bottom sheet — fits fully within the viewport */
+    .modal-overlay {
+      align-items: flex-end;
+      padding: 60px 12px 12px; /* top gap keeps it off the top bar; side + bottom margins */
+    }
+
+    .modal {
+      border-radius: 16px 16px 12px 12px;
+      max-height: 100%; /* fills remaining space inside overlay padding */
+      max-width: 100%;
+      width: 100%;
+      transform: translateY(110%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      /* overflow stays "visible" (inherited from the base .modal rule) so
+         the close button and nav arrows can stick out past the edge below
+         without being clipped; modal-header/footer get matching corner
+         radii of their own so the rounded shape still looks right. */
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    /* Drag handle indicator */
+    .modal-handle {
+      display: block;
+      width: 40px; height: 4px;
+      background: var(--datart-gray-border);
+      border-radius: 2px;
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+
+    .modal-close {
+      top: -16px; right: -16px;
+      width: 34px; height: 34px;
+      font-size: 15px;
+      position: absolute;
+      border-color: var(--datart-gray-border);
+      z-index: 40; /* stays above nav arrows and card content once outside the modal */
+    }
+
+    .modal-header { border-radius: 16px 16px 0 0; padding-top: 8px; }
+    .modal-footer { border-radius: 0 0 12px 12px; }
+
+    /* modal-body: same flex-basis:auto fix as the base rule (needed again
+       here since this media query used to redeclare it with a trap). */
+    .modal-body {
+      flex-grow: 1;
+      flex-shrink: 1;
+      flex-basis: auto;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* Mobile nav arrows */
+    .carousel-nav { display: none; }
+    .carousel-nav:not(.disabled) {
+      display: flex;
+      width: 44px; height: 44px;
+      box-shadow: 0 2px 14px rgba(0,23,68,0.45);
+      z-index: 30;
+      top: 50%;
+    }
+    .carousel-nav svg { width: 22px; height: 22px; }
+    .carousel-nav.left  { left: -10px; }
+    .carousel-nav.right { right: -10px; }
+
+    /* Cards viewport: side padding */
+    .cards-viewport {
+      padding: 14px 16px 0;
+    }
+    .compare-row { padding-bottom: 14px; }
+
+    /* Swipe hint */
+    .mobile-swipe-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--datart-text-muted);
+      padding: 0 0 4px;
+      flex-shrink: 0;
+    }
+
+    .modal-footer { flex-wrap: wrap; gap: 8px; }
+    .modal-footer-text { font-size: 12px; }
+    .modal-footer-note { width: 100%; margin-left: 0; }
+
+    /* Mobile: dots bigger touch targets */
+    .carousel-dots { padding: 8px 0 0; gap: 8px; }
+    .carousel-dots .dot { width: 8px; height: 8px; }
+  }
+
+  /* Desktop: hide mobile-only elements */
+  .modal-handle { display: none; }
+  .mobile-swipe-hint { display: none; }
+</style>
+</head>
+<body>
+
+<div class="fake-header">
+  <div class="logo">data<span>rt</span></div>
+  <div class="fake-breadcrumb">Mobily › Apple › iPhone 13 Pro</div>
+</div>
+
+<div class="page-shell">
+  <div class="product-detail-mock">
+    <div class="product-img-mock">📱</div>
+    <div class="product-info">
+      <h1>Mobilní telefon Apple iPhone 13 Pro 1TB Graphite</h1>
+      <div class="stars">★★★★★ <span>5.0 (2 recenze)</span></div>
+      <div class="price-big">38 990 Kč</div>
+      <ul class="product-specs">
+        <li>Displej: 6.1" Super Retina XDR, 120 Hz ProMotion</li>
+        <li>Čip: A15 Bionic</li>
+        <li>Fotoaparát: 12 Mpx trojitý, makro</li>
+        <li>Úložiště: 1 TB</li>
+        <li>Operační systém: iOS 15</li>
+      </ul>
+      <button class="btn-cart">Přidat do košíku</button>
+    </div>
+  </div>
+
+  <div class="ai-banner">
+    <div class="ai-banner-left">
+      <div class="ai-avatar">🤖</div>
+      <div class="ai-banner-text">
+        <h3>
+          Váháte s výběrem? Nechte to na AI
+          <span class="badge-beta">BETA</span>
+        </h3>
+        <p>Rychlý check hlavních parametrů na místě. Zjistěte, zda neexistuje lepší alternativa za podobnou cenu.</p>
+      </div>
+    </div>
+    <button class="btn-compare" id="btnOpenModal" onclick="openModal()">
+      Porovnat s alternativami
+    </button>
+  </div>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+
+    <!-- Mobile drag handle -->
+    <div class="modal-handle"></div>
+
+    <button class="modal-close" onclick="closeModal()" title="Zavřít">✕</button>
+
+    <!-- Nav arrows: on .modal, outside modal-body overflow (desktop); inside on mobile -->
+
+    <div class="modal-header">
+      <h2>AI Porovnání s alternativami</h2>
+    </div>
+
+    <div class="ai-status-bar" id="aiStatusBar">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+      <span id="aiStatusText">AI analyzuje produkty…</span>
+    </div>
+
+    <div class="carousel-area">
+      <button class="carousel-nav left disabled" id="navLeft" onclick="slide(-1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="carousel-nav right" id="navRight" onclick="slide(1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="modal-body" id="modalBody">
+        <div class="cards-viewport" id="cardsViewport"></div>
+      </div>
+      <div class="carousel-dots" id="carouselDots"></div>
+    </div>
+
+    <div class="mobile-swipe-hint" id="swipeHint">
+      ← přejeďte pro další alternativy →
+    </div>
+
+    <div class="modal-footer">
+      <span class="modal-footer-text">Bylo toto porovnání užitečné?</span>
+      <button class="vote-btn" id="voteUp" onclick="vote('up')" title="Ano">👍</button>
+      <button class="vote-btn" id="voteDown" onclick="vote('down')" title="Ne">👎</button>
+      <span class="modal-footer-note" id="voteNote"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const CURRENT_PRODUCT = {
+  id: 'iphone13pro',
+  badge: 'Právě prohlížíte',
+  name: 'Mobilní telefon Apple iPhone 13 Pro 1TB Graphite',
+  price: '38 990 Kč',
+  rating: 5.0, ratingCount: 2,
+  isCurrent: true, aiPoints: null
+};
+const ALTERNATIVES = [
+  { id: 'iphone14pro', badge: '🔥 Nejlepší poměr cena/výkon', name: 'Mobilní telefon Apple iPhone 14 Pro 1TB Space Black', price: '41 990 Kč', rating: 5.0, ratingCount: 15, isCurrent: false, aiPoints: null },
+  { id: 'samsungs23ultra', badge: '💡 Alternativa s Androidem', name: 'Mobilní telefon Samsung Galaxy S23 Ultra 512GB', price: '29 990 Kč', rating: 4.8, ratingCount: 128, isCurrent: false, aiPoints: null,
+    specs: [
+      'Displej: 6.8" Dynamic AMOLED 2X, 120 Hz',
+      'Fotoaparát: 200 Mpx + 12 Mpx UW + 10 Mpx 10× zoom',
+      'Baterie: 5000 mAh, 45W rychlonabíjení',
+      'S Pen součástí balení'
+    ]
+  },
+  { id: 'pixel7pro', badge: '🤖 Čistý Android a špičkové foto', name: 'Mobilní telefon Google Pixel 7 Pro 256GB', price: '19 990 Kč', rating: 4.7, ratingCount: 84, isCurrent: false, aiPoints: null },
+  { id: 'iphone15', badge: '✨ Nejnovější model', name: 'Mobilní telefon Apple iPhone 15 256GB Black', price: '24 990 Kč', rating: 4.9, ratingCount: 47, isCurrent: false, aiPoints: null }
+];
+
+// ============================================================
+// RESPONSIVE: visible cards count
+// ============================================================
+function isMobile() { return window.innerWidth <= 640; }
+
+// Current product is always pinned and never slides. Only the alternatives
+// move — this many are visible at once in the sliding alt-track.
+function altVisibleCount() { return isMobile() ? 1 : 2; }
+
+// Total slots used to divide up --card-width: the pinned current card + the
+// visible alternative(s) beside it.
+function visibleCards() { return 1 + altVisibleCount(); }
+
+let currentOffset = 0;
+
+// Offset only ever indexes into ALTERNATIVES (current is pinned and never
+// part of the slide).
+function maxOffset() {
+  return Math.max(0, ALTERNATIVES.length - altVisibleCount());
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function renderStars(r) {
+  let s = '';
+  for (let i = 0; i < Math.floor(r); i++) s += '★';
+  if (r % 1 >= 0.5) s += '½';
+  return s;
+}
+
+function renderCard(product) {
+  const el = document.createElement('div');
+  el.className = 'product-card' + (product.isCurrent ? ' current' : '');
+  el.id = 'card-' + product.id;
+  const footerBtn = product.isCurrent
+    ? `<button class="btn-detail current-btn">Aktuální produkt</button>`
+    : `<button class="btn-detail go-btn">Zobrazit detail produktu ›</button>`;
+
+  // If AI points were already fetched earlier (e.g. this card is being
+  // re-rendered after a mobile/desktop layout switch), show them straight
+  // away instead of flashing the loading skeleton again.
+  let aiContent;
+  if (product.aiPoints) {
+    aiContent = aiListHTML(product.aiPoints, product.isCurrent);
+  } else if (product.isCurrent) {
+    aiContent = `<div class="ai-placeholder"><div class="icon">📊</div><div>Toto je váš aktuálně prohlížený produkt</div></div>`;
+  } else {
+    aiContent = `
+          <div class="skeleton" style="height:14px;width:80%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:48px;width:100%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:14px;width:85%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:36px;width:100%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:14px;width:60%"></div>`;
+  }
+
+  const specsHTML = product.specs
+    ? `<ul class="card-extra-specs">${product.specs.map(s => `<li>${s}</li>`).join('')}</ul>`
+    : '';
+
+  el.innerHTML = `
+    <div class="card-badge">${product.badge}</div>
+    <div class="card-name">${product.name}</div>
+    <div class="card-price">${product.price}</div>
+    <div class="card-rating">
+      <span class="stars-row">${renderStars(product.rating)}</span>
+      <span class="rating-val">${product.rating}</span>
+      <span class="rating-count">(${product.ratingCount})</span>
+    </div>
+    ${specsHTML}
+    <div class="card-ai-section" id="ai-section-${product.id}">
+      <div class="ai-section-label"><div class="dot"></div>Proč zvážit tento model:</div>
+      <div class="ai-loading" id="ai-loading-${product.id}">${aiContent}</div>
+    </div>
+    <div class="card-footer">${footerBtn}</div>`;
+  return el;
+}
+
+function aiListHTML(points, isCurrent) {
+  const cls = isCurrent ? 'ai-list' : 'ai-list advantage';
+  return `<ul class="${cls}">${points.map((p, i) =>
+    `<li style="animation-delay:${i * 0.1}s"><div class="bullet"></div><div><strong>${p.title}:</strong> ${p.body}</div></li>`
+  ).join('')}</ul>`;
+}
+
+function renderAIPoints(productId, points, isCurrent) {
+  const section = document.getElementById('ai-loading-' + productId);
+  if (!section) return;
+  section.innerHTML = aiListHTML(points, isCurrent);
+}
+
+// ============================================================
+// CAROUSEL
+// ============================================================
+const CARD_GAP = 16;
+
+// Computes a card width that always fits the actual rendered modal/viewport
+// width, divided evenly among the currently visible cards — instead of a
+// fixed px value that could overflow or leave odd gaps at in-between
+// browser widths.
+function computeCardWidth() {
+  const viewport = document.querySelector('.cards-viewport');
+  if (!viewport) return 258;
+  const cs = getComputedStyle(viewport);
+  const paddingL = parseFloat(cs.paddingLeft) || 0;
+  const paddingR = parseFloat(cs.paddingRight) || 0;
+  const available = viewport.clientWidth - paddingL - paddingR;
+  const visible = visibleCards();
+  const totalGap = CARD_GAP * (visible - 1);
+  const width = (available - totalGap) / visible;
+  return Math.max(160, width); // sane floor so content stays readable
+}
+
+function applyCardWidth() {
+  const width = computeCardWidth();
+  document.documentElement.style.setProperty('--card-width', width + 'px');
+  document.documentElement.style.setProperty('--card-gap', CARD_GAP + 'px');
+  return width;
+}
+
+function buildCarousel() {
+  const viewport = document.getElementById('cardsViewport');
+  viewport.innerHTML = '';
+  currentOffset = 0;
+
+  // Same structure on both breakpoints: current product pinned on the left
+  // (never slides), alternatives in a sliding mini-carousel to its right.
+  // Only how many alternatives are visible at once differs (see
+  // altVisibleCount()) — sized dynamically by layoutCompareRow().
+  const row = document.createElement('div');
+  row.className = 'compare-row';
+  row.appendChild(renderCard(CURRENT_PRODUCT));
+
+  const altViewport = document.createElement('div');
+  altViewport.className = 'alt-viewport';
+  const altTrack = document.createElement('div');
+  altTrack.className = 'alt-track';
+  altTrack.id = 'altTrack';
+  ALTERNATIVES.forEach(p => altTrack.appendChild(renderCard(p)));
+  altViewport.appendChild(altTrack);
+  row.appendChild(altViewport);
+
+  viewport.appendChild(row);
+
+  layoutCompareRow();
+}
+
+// Recomputes card width + alt-viewport width (how many alt cards should be
+// visible at once) and re-renders dots/position. No DOM rebuild needed —
+// same structure works at any width, only sizes change.
+function layoutCompareRow() {
+  const width = applyCardWidth();
+  const altViewport = document.querySelector('.alt-viewport');
+  if (altViewport) {
+    const visible = altVisibleCount();
+    altViewport.style.width = (width * visible + CARD_GAP * (visible - 1)) + 'px';
+  }
+  buildDots();
+  updateCarousel();
+}
+
+function buildDots() {
+  const dotsEl = document.getElementById('carouselDots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i <= maxOffset(); i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.onclick = () => { currentOffset = i; updateCarousel(); };
+    dotsEl.appendChild(d);
+  }
+}
+
+function updateCarousel() {
+  const mo = maxOffset();
+  currentOffset = Math.max(0, Math.min(mo, currentOffset));
+
+  // Same computed width used to size the cards (via --card-width) is used
+  // here for the slide offset, so the two always stay in sync.
+  const cardW = applyCardWidth() + CARD_GAP;
+
+  const track = document.getElementById('altTrack');
+  if (track) track.style.transform = `translateX(-${currentOffset * cardW}px)`;
+
+  document.getElementById('navLeft').classList.toggle('disabled', currentOffset === 0);
+  document.getElementById('navRight').classList.toggle('disabled', currentOffset >= mo);
+  document.querySelectorAll('.carousel-dots .dot').forEach((d, i) => d.classList.toggle('active', i === currentOffset));
+}
+
+function slide(dir) {
+  currentOffset = Math.max(0, Math.min(maxOffset(), currentOffset + dir));
+  updateCarousel();
+}
+
+// Same DOM structure at every width, so resize only needs to re-measure and
+// re-layout — no rebuild, so nothing (including already-fetched AI content)
+// is ever lost.
+window.addEventListener('resize', () => {
+  if (document.getElementById('altTrack')) layoutCompareRow();
+});
+
+// ============================================================
+// TOUCH / SWIPE
+// ============================================================
+let touchStartX = 0, touchStartY = 0, touchMoved = false;
+
+document.getElementById('modalBody').addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+  touchMoved = false;
+}, { passive: true });
+
+document.getElementById('modalBody').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+    slide(dx < 0 ? 1 : -1);
+  }
+}, { passive: true });
+
+// ============================================================
+// MODAL OPEN / CLOSE
+// ============================================================
+let modalOpen = false;
+let comparisonDone = false;
+
+function openModal() {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  modalOpen = true;
+  if (!comparisonDone) {
+    buildCarousel();
+    startAIComparison();
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  modalOpen = false;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (!modalOpen) return;
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'ArrowLeft') slide(-1);
+  if (e.key === 'ArrowRight') slide(1);
+});
+
+// ============================================================
+// AI via Claude API
+// ============================================================
+async function startAIComparison() {
+  const statusBar = document.getElementById('aiStatusBar');
+  const statusText = document.getElementById('aiStatusText');
+
+  const hideBar = () => {
+    statusBar.classList.remove('visible');
+    document.getElementById('swipeHint').style.display = 'none';
+    comparisonDone = true;
+  };
+
+  statusBar.classList.add('visible');
+  statusText.textContent = 'AI analyzuje produkty...';
+
+  const alts = ALTERNATIVES;
+  const total = alts.length;
+
+  fetchCurrentProductPoints(CURRENT_PRODUCT).catch(() => {});
+
+  try {
+    for (let i = 0; i < alts.length; i++) {
+      const product = alts[i];
+      statusText.textContent = 'Porovnavam ' + (i + 1) + ' z ' + total + ': ' + product.name.split(' ').slice(2, 5).join(' ') + '...';
+      await fetchAlternativePoints(product);
+    }
+  } finally {
+    hideBar();
+  }
+}
+
+async function fetchCurrentProductPoints(product) {
+  const prompt = `Jsi AI asistent na e-shopu Datart.cz.\nProdukt: "${product.name}" za ${product.price}.\nNapiš 3 krátké body (max 2 věty každý), proč je tento konkrétní produkt stále atraktivní i přes to, že zákazník váhá.\nOdpověz POUZE jako JSON pole objektů s klíči "title" (tučný název výhody, max 3 slova) a "body" (vysvětlení).\nPříklad: [{"title":"...", "body":"..."}, ...]\nNepřidávej žádný jiný text, jen JSON.`;
+  const points = await callClaudeAPI(prompt, product.name);
+  if (points) {
+    product.aiPoints = points;
+    renderAIPoints(product.id, points, true);
+  }
+}
+
+async function fetchAlternativePoints(product) {
+  const prompt = `Jsi AI asistent na e-shopu Datart.cz.\nZákazník prohlíží: "Apple iPhone 13 Pro 1TB Graphite" za 38 990 Kč.\nAlternativa: "${product.name}" za ${product.price}.\nNapiš 3 stručné body (max 2 věty každý), proč zvážit tuto alternativu místo iPhone 13 Pro. Buď konkrétní a upřímný.\nOdpověz POUZE jako JSON pole objektů s klíči "title" (tučný název výhody, max 4 slova) a "body" (vysvětlení).\nNepřidávej žádný jiný text, jen JSON.`;
+  const points = await callClaudeAPI(prompt, product.name);
+  if (points) {
+    product.aiPoints = points;
+    renderAIPoints(product.id, points, false);
+  }
+}
+
+async function callClaudeAPI(prompt, productName) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    const text = data.content.find(b => b.type === 'text')?.text || '';
+    return JSON.parse(text.replace(/```json\s*/gi, '').replace(/```/g, '').trim());
+  } catch (e) {
+    console.warn('AI fallback for', productName, e);
+    return getFallbackPoints(productName);
+  }
+}
+
+function getFallbackPoints(name) {
+  const fallbacks = {
+    'iPhone 13 Pro': [
+      { title: 'ProMotion displej', body: 'Adaptivní 120 Hz obnovovací frekvence zaručuje dokonale plynulé rolování a odezvu.' },
+      { title: 'Čip A15 Bionic', body: 'Jeden z nejvýkonnějších čipů ve smartphonech, skvělý pro náročné aplikace a hry.' },
+      { title: 'Makro fotografie', body: 'Unikátní makro objektiv umožňuje fotit detaily na vzdálenost pouhých 2 cm.' }
+    ],
+    'iPhone 14 Pro': [
+      { title: 'Dynamic Island', body: 'Revoluční způsob interakce s notifikacemi a Live Activities nahrazuje statický výřez.' },
+      { title: '48 Mpx snímač', body: 'Čtyřikrát více pixelů než u iPhone 13 Pro, skvělý pro velké tisky a ořezy fotek.' },
+      { title: 'Always-On displej', body: 'Čas a notifikace vždy viditelné bez nutnosti zdvihat telefon.' }
+    ],
+    'Samsung': [
+      { title: 'Integrovaný S Pen', body: 'Stylus přímo v těle telefonu, ideální pro rychlé poznámky a kreslení.' },
+      { title: '200 Mpx fotoaparát', body: 'Rekordní rozlišení s 10× optickým zoomem, který nemá na trhu konkurenci.' },
+      { title: 'Cena o 9000 Kč nižší', body: 'Za výrazně nižší cenu získáte srovnatelný nebo lepší hardware než u iPhone.' }
+    ],
+    'Pixel': [
+      { title: 'Magic Eraser', body: 'AI nástroj pro mazání rušivých objektů z fotek jedním klepnutím.' },
+      { title: 'Čistý Android', body: 'Garance 5 let aktualizací přímo od Googlu bez zbytečného softwaru výrobce.' },
+      { title: 'Cena o 19000 Kč nižší', body: 'Nejlepší poměr cena/výkon v tomto porovnání s prémiové funkce za nízkou cenu.' }
+    ],
+    'iPhone 15': [
+      { title: 'USB-C konektor', body: 'Moderní USB-C s rychlým přenosem dat nahrazuje starší Lightning.' },
+      { title: 'Dynamic Island', body: 'Interaktivní oblast kolem průstřelu displeje nahrazuje statický výřez.' },
+      { title: 'Cena o 14000 Kč nižší', body: 'Novější model za výrazně nižší cenu s lepším čipem A16 Bionic.' }
+    ]
+  };
+  for (const [key, val] of Object.entries(fallbacks)) {
+    if (name.includes(key)) return val;
+  }
+  return [
+    { title: 'Skvělý výkon', body: 'Tento model nabízí vynikající výkon pro každodenní používání.' },
+    { title: 'Dobrá cena', body: 'Atraktivní poměr cena/výkon v dané kategorii.' },
+    { title: 'Spolehlivý výrobce', body: 'Zavedený výrobce s dlouhou zárukou a servisní sítí.' }
+  ];
+}
+
+// ============================================================
+// VOTING
+// ============================================================
+function vote(type) {
+  document.getElementById('voteUp').classList.remove('voted');
+  document.getElementById('voteDown').classList.remove('voted');
+  document.getElementById('vote' + (type === 'up' ? 'Up' : 'Down')).classList.add('voted');
+  document.getElementById('voteNote').textContent = type === 'up' ? 'Díky za zpětnou vazbu! 🙏' : 'Díky! Pomůžete nám AI vylepšit.';
+}
+</script>
+</body>
+</html>
