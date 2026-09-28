@@ -268,7 +268,7 @@
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding: 10px 16px 0; /* no bottom padding: sticky footer must sit flush with the bottom edge */
+    padding: 0 16px; /* no vertical padding: sticky name/footer must sit flush with the edges */
   }
 
   /* ===== COMPARE ROW =====
@@ -282,7 +282,7 @@
     flex-direction: row;
     align-items: stretch; /* current + visible alt(s) share the tallest height */
     gap: var(--card-gap);
-    padding-bottom: 10px; /* bottom spacing lives here so it scrolls with content */
+    padding: 10px 0; /* vertical spacing lives here so it scrolls with content */
   }
   .alt-viewport {
     flex-shrink: 0;
@@ -304,7 +304,8 @@
 
   /* ===== PRODUCT CARD ===== */
   .product-card {
-    background: white;
+    --card-bg: white;
+    background: var(--card-bg);
     border: 1px solid var(--datart-gray-border);
     border-radius: 8px;
     padding: 20px;
@@ -319,7 +320,7 @@
   .product-card.current {
     border-color: var(--datart-navy);
     box-shadow: 0 0 0 1px rgba(0,23,68,0.15);
-    background: #e8eef8;
+    --card-bg: #e8eef8;
   }
 
   .card-badge {
@@ -328,15 +329,19 @@
     font-size: 11px; font-weight: 700;
     text-align: center;
     padding: 6px 12px; border-radius: 4px;
-    margin-bottom: 16px;
+    margin-bottom: 4px; /* + 12px padding-top on .card-name = the original 16px gap */
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .product-card.current .card-badge { background: var(--datart-navy); color: white; }
 
   .card-name {
     font-size: 14px; font-weight: 700; color: var(--datart-navy);
-    line-height: 1.4; margin-bottom: 8px; min-height: 42px;
+    line-height: 1.4; margin-bottom: 8px; padding-top: 12px; min-height: 54px; /* 42px text + 12px padding */
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    /* Sticks to the top of the scroll area once it would scroll out of view */
+    position: sticky; top: 0; z-index: 2;
+    background: var(--card-bg);
+    box-shadow: 0 8px 0 var(--card-bg); /* paints over the 8px margin below so text doesn't show through */
   }
   .card-price { font-size: 16px; font-weight: 700; color: var(--datart-red); margin-bottom: 4px; }
 
@@ -388,9 +393,8 @@
   .card-footer {
     margin-top: 20px; padding-top: 16px; border-top: 1px solid #f3f4f6;
     position: sticky; bottom: 0; z-index: 2;
-    background: white; /* opaque so scrolled content doesn't show through while stuck */
+    background: var(--card-bg); /* opaque so scrolled content doesn't show through while stuck */
   }
-  .product-card.current .card-footer { background: #e8eef8; } /* match current card's tint */
   .btn-detail {
     width: 100%; padding: 10px; border-radius: 4px;
     font-size: 13px; font-weight: 700; font-family: inherit;
@@ -544,9 +548,9 @@
 
     /* Cards viewport: side padding */
     .cards-viewport {
-      padding: 14px 16px 0;
+      padding: 0 16px;
     }
-    .compare-row { padding-bottom: 14px; }
+    .compare-row { padding: 14px 0; }
 
     /* Swipe hint */
     .mobile-swipe-hint {
