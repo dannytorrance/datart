@@ -489,10 +489,22 @@
     }
     .btn-compare { width: 100%; text-align: center; }
 
-    /* Bottom sheet — fits fully within the viewport */
+    /* Bottom sheet — fits fully within the viewport.
+       Padding is kept to the minimum needed to avoid clipping the elements
+       that intentionally stick out past the modal's edges:
+       - top:    close button overshoots -16px above the modal
+       - right:  close button overshoots -16px to the right of the modal
+       - left:   nav arrows overshoot -10px to the left (less than the close
+                 button, so it doesn't drive this value)
+       - bottom: small fixed gap only
+       env(safe-area-inset-*) adds clearance on notched devices on top of
+       that (falls back to 0 where unsupported). */
     .modal-overlay {
       align-items: flex-end;
-      padding: 60px 12px 12px; /* top gap keeps it off the top bar; side + bottom margins */
+      padding: calc(20px + env(safe-area-inset-top, 0px))
+                18px
+                max(8px, env(safe-area-inset-bottom, 0px))
+                12px;
     }
 
     .modal {
