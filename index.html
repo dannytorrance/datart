@@ -43,7 +43,8 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    margin-bottom: 24px;
+    max-width: 1200px;
+    margin: 0 auto 24px;
     border-radius: 8px;
   }
   .fake-header .logo { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
@@ -267,7 +268,6 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
     padding: 0 16px; /* no vertical padding: sticky name/footer must sit flush with the edges */
   }
 
@@ -286,11 +286,12 @@
   }
   .alt-viewport {
     flex-shrink: 0;
-    overflow-x: hidden; /* fallback for browsers without overflow: clip */
-    overflow-x: clip;   /* clips sideways WITHOUT becoming a scroll container, so
-                           .card-footer's sticky still reaches .cards-viewport */
-    overflow-y: visible;
     position: relative;
+    /* Clip the sliding track WITHOUT using overflow: any overflow other than
+       "visible" turns this box into a scroll container, and sticky children
+       (.card-name / .card-footer) would then stick to THIS box instead of
+       .cards-viewport — which is what broke pinning on mobile browsers. */
+    clip-path: inset(0);
     /* width set dynamically by JS to fit however many alt cards are
        visible at the current breakpoint */
   }
@@ -299,7 +300,8 @@
     flex-direction: row;
     align-items: stretch; /* all alt cards share the tallest one's height */
     gap: var(--card-gap);
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    width: max-content;
+    transition: margin-left 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* ===== PRODUCT CARD ===== */
@@ -336,12 +338,16 @@
 
   .card-name {
     font-size: 14px; font-weight: 700; color: var(--datart-navy);
-    line-height: 1.4; margin-bottom: 8px; padding-top: 12px; min-height: 54px; /* 42px text + 12px padding */
-    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-    /* Sticks to the top of the scroll area once it would scroll out of view */
-    position: sticky; top: 0; z-index: 2;
+    line-height: 1.4; margin-bottom: 8px; padding-top: 12px;
+    /* Sticks to the top of the scroll area once it would scroll out of view.
+       Kept a plain block (no -webkit-box / overflow on this element itself). */
+    position: -webkit-sticky; position: sticky; top: 0; z-index: 2;
     background: var(--card-bg);
     box-shadow: 0 8px 0 var(--card-bg); /* paints over the 8px margin below so text doesn't show through */
+  }
+  .card-name-text {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    min-height: 42px;
   }
   .card-price { font-size: 16px; font-weight: 700; color: var(--datart-red); margin-bottom: 4px; }
 
@@ -392,7 +398,7 @@
 
   .card-footer {
     margin-top: 20px; padding-top: 16px; border-top: 1px solid #f3f4f6;
-    position: sticky; bottom: 0; z-index: 2;
+    position: -webkit-sticky; position: sticky; bottom: 0; z-index: 2;
     background: var(--card-bg); /* opaque so scrolled content doesn't show through while stuck */
   }
   .btn-detail {
@@ -754,7 +760,7 @@ function renderCard(product) {
 
   el.innerHTML = `
     <div class="card-badge">${product.badge}</div>
-    <div class="card-name">${product.name}</div>
+    <div class="card-name"><span class="card-name-text">${product.name}</span></div>
     <div class="card-price">${product.price}</div>
     <div class="card-rating">
       <span class="stars-row">${renderStars(product.rating)}</span>
@@ -873,7 +879,7 @@ function updateCarousel() {
   const cardW = applyCardWidth() + CARD_GAP;
 
   const track = document.getElementById('altTrack');
-  if (track) track.style.transform = `translateX(-${currentOffset * cardW}px)`;
+  if (track) track.style.marginLeft = `-${currentOffset * cardW}px`;
 
   document.getElementById('navLeft').classList.toggle('disabled', currentOffset === 0);
   document.getElementById('navRight').classList.toggle('disabled', currentOffset >= mo);
