@@ -43,7 +43,11 @@
     display: flex;
     align-items: center;
     gap: 16px;
-    max-width: 1200px;
+    /* page-shell's content sits inset by its own 16px horizontal padding
+       (border-box), so match that inset here instead of just page-shell's
+       outer 1200px box, or the edges wouldn't actually line up. */
+    width: calc(100% - 32px);
+    max-width: 1168px; /* 1200px page-shell width minus 16px padding each side */
     margin: 0 auto 24px;
     border-radius: 8px;
   }
@@ -465,7 +469,7 @@
      - Nav arrows hidden (swipe instead)
   ============================================================ */
   @media (max-width: 640px) {
-    .fake-header { border-radius: 0; margin-bottom: 0; }
+    .fake-header { width: calc(100% - 24px); border-radius: 0; margin-bottom: 0; }
     .page-shell { padding: 16px 12px; }
 
     .product-detail-mock {
